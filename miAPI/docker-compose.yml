@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    container_name: server_fastAPI
+    ports:
+      - target: 5000
+        published: 5000
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./app:/app/app

@@ -51,3 +51,4 @@ async def consultatodos(id:Optional[int] = None):
                }
     else:
         return {"Mensaje":"No se proporcionó ID"}
+    
