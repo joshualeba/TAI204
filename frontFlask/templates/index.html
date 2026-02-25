@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<body>
+    <h1>Lista de usuarios</h1>
+
+    <table border="1">
+        <tr>
+            <td>ID</td>
+            <td>Nombre</td>
+            <td>Edad</td>
+            <td>Opcion</td>
+        </tr>
+        {% for u in usuarios %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.nombre }}</td>
+            <td>{{ u.edad }}</td>
+            <td><a href="/borrar/{{ u.id }}">Borrar</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+
+    <h2>Agregar</h2>
+    <form action="/guardar" method="POST">
+        ID: <input type="number" name="id"><br>
+        Nombre: <input type="text" name="nombre"><br>
+        Edad: <input type="text" name="edad"><br>
+        <button type="submit">Guardar</button>
+    </form>
+
+    <br>
+
+</body>
+
+</html>
