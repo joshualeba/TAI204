@@ -1,7 +1,9 @@
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Depends
 import asyncio
 from typing import Optional
 from pydantic import BaseModel, Field
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 
 app = FastAPI(
     title = "Mi Primera API",
@@ -32,6 +34,22 @@ class crear_usuario(BaseModel):
     id: int = Field(..., gt = 0, description = "Identificador de usuario")
     nombre: str = Field(..., min_length = 3, max_length = 50, example = "John Doe")
     edad: int = Field(..., min_length = 1, max_length = 125, description = "Edad válida entre 1 y 125")
+
+
+# Seguridad con HTTP Basic
+
+security = HTTPBasic()
+
+def verificar_peticion(credenciales:HTTPBasicCredentials = Depends(security)):
+    usuarioAuth = secrets.compare_digest(credenciales.username, "Joshua")
+    contraAuth = secrets.compare_digest(credenciales.password, "Contraseña123!")
+
+    if not(usuarioAuth and contraAuth):
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Credenciales no autorizadas"
+        )
+    return credenciales.username 
 
 @app.get("/v1/ParametroOb/{id}", tags = ['Parametro obligatorio'])
 async def consultauno(id:int):
@@ -91,15 +109,15 @@ async def actualizar_usuario(id: int, usuario_actualizado: dict):
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @app.delete("/v1/usuarios/{id}", tags = ['CRUD HTTP'])
-async def eliminar_usuario(id: int):
+async def eliminar_usuario(id: int, usuarioAuth:str = Depends(verificar_peticion)):
     for usr in usuarios:
         if usr["id"] == id:
             usuarios.remove(usr)
             return {
-                "Mensaje": "Usuario eliminado",
+                "Mensaje": f"Usuario eliminado por {usuarioAuth}",
                 "Status": "200"
             }
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    raise HTTPException(status_code = 404, detail="Usuario no encontrado")
 
 
 # Con este comando se ejecuta el servidor y le asignamos un puerto: 
