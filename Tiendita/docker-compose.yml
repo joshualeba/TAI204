@@ -1,0 +1,15 @@
+services:
+  # Aquí definimos qué servicios o aplicaciones va a levantar Docker
+  api:
+    # Nombre que le damos a nuestra pequeña aplicación
+    build: . # Le decimos que construye la imagen usando el Dockerfile de esta carpeta
+    container_name: server_fastAPI_tiendita # Nombre que tendrá el contenedor cuando esté prendido
+    ports:
+      # Sección de conexión de puertos
+      - target: 5010 # Puerto que escucha la aplicación dentro de Docker
+        published: 5010 # Puerto que abrimos en nuestra computadora para verla
+        protocol: tcp # Usamos el protocolo estándar de internet
+        mode: host # Modo de red básico
+    volumes:
+      # Sección para conectar archivos
+      - ./app:/app/app # Conecta nuestra carpeta local con la de Docker para cambios en tiempo real
