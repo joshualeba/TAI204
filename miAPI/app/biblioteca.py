@@ -1,15 +1,16 @@
-from fastapi import FastAPI, status, HTTPException
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Literal
-from datetime import datetime
+from fastapi import FastAPI, status, HTTPException # Herramientas principales de nuestra API
+from pydantic import BaseModel, Field, EmailStr # Para definir las formas de nuestros datos y validar correos
+from typing import List, Optional, Literal # Herramientas para tipos de datos más específicos
+from datetime import datetime # Para manejar la fecha actual
 
+# Iniciamos nuestra aplicación de la biblioteca
 app = FastAPI(
-    title="API Biblioteca Digital",
-    description="Por: Andrés Joshua León Barranco",
-    version="1.0"
+    title="API Biblioteca Digital", # Título que se ve en la web
+    description="Por: Andrés Joshua León Barranco", # Autor
+    version="1.0" # Versión del programa
 )
 
-# Lista de libros para empezar con algo de información
+# Lista inicial de libros para que no esté vacía al empezar
 libros = [
     {
         "id": 1,
@@ -29,102 +30,104 @@ libros = [
     }
 ]
 
-# Lista para guardar los prestamos que se vayan haciendo
+# Lista para llevar el registro de quién se lleva qué libro
 prestamos = []
 
-# Definimos como debe ser un libro
+# Definimos las reglas que debe cumplir un libro para ser aceptado
 class Libro(BaseModel):
-    id: int
-    titulo: str = Field(..., min_length=2, max_length=100)
-    autor: str
-    anio: int = Field(..., gt=1450, le=datetime.now().year)
-    paginas: int = Field(..., gt=1)
-    estado: Literal["disponible", "prestado"] = "disponible"
+    id: int # Identificador único numérico
+    titulo: str = Field(..., min_length=2, max_length=100) # Título de entre 2 y 100 letras
+    autor: str # Nombre de quien lo escribió
+    anio: int = Field(..., gt=1450, le=datetime.now().year) # El año debe ser lógico (no antes de 1450 ni en el futuro)
+    paginas: int = Field(..., gt=1) # Debe tener al menos una página
+    estado: Literal["disponible", "prestado"] = "disponible" # Solo puede estar en uno de estos dos estados
 
-# Definimos los datos del usuario
+# Definimos cómo es un usuario que quiere un libro
 class Usuario(BaseModel):
-    nombre: str
-    correo: EmailStr
+    nombre: str # Su nombre completo
+    correo: EmailStr # Su correo (Pydantic validará que sea un correo real)
 
-# Definimos que datos lleva un prestamo
+# Definimos la estructura de un registro de préstamo
 class Prestamo(BaseModel):
-    id_prestamo: int
-    id_libro: int
-    usuario: Usuario
+    id_prestamo: int # Número de folio del préstamo
+    id_libro: int # Cuál libro se están llevando
+    usuario: Usuario # Quién se lo lleva (reutilizamos la clase Usuario)
 
-# Ruta para agregar un libro nuevo
+# Ruta para meter un libro nuevo al sistema
 @app.post("/v1/libros", status_code=status.HTTP_201_CREATED, tags=['Libros'])
 async def registrar_libro(libro: Libro):
-    # Revisamos que el ID no este repetido
+    # Revisamos que no intenten meter un ID que ya existe
     for l in libros:
         if l["id"] == libro.id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="El id ya existe"
             )
-    # Agregamos el libro a nuestra lista
+    # Si todo está bien, lo agregamos a nuestra lista
     libros.append(libro.model_dump())
     return {"mensaje": "Libro registrado", "libro": libro}
 
-# Ruta para ver todos los libros que tenemos
+# Ruta para ver el catálogo completo de libros
 @app.get("/v1/libros", tags=['Libros'])
 async def listar_libros():
     return {"libros": libros}
 
-# Ruta para buscar un libro por su titulo
+# Ruta para buscar libros por una parte de su nombre
 @app.get("/v1/libros/buscar/{nombre}", tags=['Libros'])
 async def buscar_libro(nombre: str):
-    # Buscamos el nombre dentro de la lista de libros
+    # Buscamos coincidencias ignorando mayúsculas y minúsculas
     resultado = [l for l in libros if nombre.lower() in l["titulo"].lower()]
     return {"resultados": resultado}
 
-# Ruta para prestar un libro
+# Ruta para marcar un libro como prestado
 @app.post("/v1/prestamos", status_code=status.HTTP_201_CREATED, tags=['Préstamos'])
 async def registrar_prestamo(prestamo: Prestamo):
-    # Buscamos si el libro existe
+    # Buscamos si el libro que quieren realmente existe en nuestra lista
     libro = next((l for l in libros if l["id"] == prestamo.id_libro), None)
     
     if not libro:
+        # Si no lo encontramos, avisamos que no existe
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="El libro solicitado no existe"
         )
     
-    # Checamos si no esta prestado ya
+    # Si sí existe, checamos si ya se lo llevó alguien más
     if libro["estado"] == "prestado":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
             detail="El libro ya se encuentra prestado"
         )
     
-    # Cambiamos el estado a prestado y lo guardamos
+    # Si está disponible, lo marcamos como prestado y guardamos el registro
     libro["estado"] = "prestado"
     prestamos.append(prestamo)
     return {"mensaje": "Préstamo registrado exitosamente"}
 
-# Ruta para cuando devuelven un libro
+# Ruta para marcar que un libro ya regresó a la biblioteca
 @app.put("/v1/libros/devolver/{id_libro}", tags=['Préstamos'])
 async def devolver_libro(id_libro: int):
-    # Buscamos el prestamo en la lista
+    # Buscamos si hay un préstamo activo para ese libro
     prestamo_act = next((p for p in prestamos if p.id_libro == id_libro), None)
     
     if not prestamo_act:
+        # Si no hay registro de que alguien se lo llevó, mandamos error
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, 
             detail="No existe un registro de préstamo activo para este libro"
         )
     
-    # Ponemos el libro como disponible otra vez
+    # Buscamos el libro y lo ponemos como disponible de nuevo
     libro = next((l for l in libros if l["id"] == id_libro), None)
     libro["estado"] = "disponible"
-    # Quitamos el prestamo de la lista
+    # Quitamos el papel del préstamo de nuestra lista
     prestamos.remove(prestamo_act)
     return {"mensaje": "Libro devuelto correctamente"}
 
-# Ruta para borrar un prestamo de la lista
+# Ruta para borrar un registro de préstamo (limpiar historial)
 @app.delete("/v1/prestamos/{id_prestamo}", tags=['Préstamos'])
 async def eliminar_prestamo(id_prestamo: int):
-    # Buscamos el prestamo por su ID para borrarlo
+    # Lo buscamos por su número de folio
     prestamo = next((p for p in prestamos if p.id_prestamo == id_prestamo), None)
     
     if not prestamo:
@@ -133,5 +136,5 @@ async def eliminar_prestamo(id_prestamo: int):
             detail="Préstamo no encontrado"
         )
         
-    prestamos.remove(prestamo)
-    return {"mensaje": "Registro de préstamo eliminado"}
+    prestamos.remove(prestamo) # Lo borramos de la lista
+    return {"mensaje": "Registro de préstamo eliminado"}
