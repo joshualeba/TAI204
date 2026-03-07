@@ -1,0 +1,8 @@
+services: # Aquí definimos qué aplicaciones va a gestionar docker compose
+  asistencia-api: # Nombre que le damos a nuestro servicio
+    build: . # Le decimos que construya la imagen con el dockerfile de esta carpeta
+    container_name: api_congreso # Nombre que tendrá nuestro contenedor al estar prendido
+    ports: # Sección para conectar los puertos
+      - "8080:8080" # Conectamos el puerto 8080 de nuestra pc con el de docker
+    volumes: # Sección para conectar archivos en tiempo real
+      - ./app:/app/app # Esto hace que si cambiamos el código en la pc, se vea en docker de una vez

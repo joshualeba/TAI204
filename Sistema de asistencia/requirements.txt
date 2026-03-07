@@ -1,0 +1,7 @@
+fastapi # El motor principal para crear nuestra api
+uvicorn # El servidor que mantiene nuestra aplicación corriendo
+pydantic # Para validar que los datos que entran sean correctos
+python-jose[cryptography] # Para crear y leer los tokens jwt de forma segura
+passlib[bcrypt] # Para el manejo de contraseñas si fuera necesario
+python-multipart # Necesario para procesar el formulario de inicio de sesión (/token)
+email-validator # Necesario para validar campos de tipo EmailStr
