@@ -1,0 +1,11 @@
+services:
+  turnos:
+    build: .
+    container_name: api_turnos
+    ports:
+      - target: 5025
+        published: 5025
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./app:/app/app
