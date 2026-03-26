@@ -6,4 +6,3 @@ usuarios = [
     {"id":3, "nombre":"Cris", "edad":"22"},
     {"id":4, "nombre":"Lalo", "edad":"20"}
 ]
-
