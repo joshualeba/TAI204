@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: 123456
       POSTGRES_DB: DB_miapi
     ports:
-      - "5434:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
   
